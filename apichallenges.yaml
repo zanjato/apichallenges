@@ -1,7 +1,7 @@
 ---
 - hosts: localhost
   connection: local
-  gather_facts: no
+  gather_facts: false
 
   tasks:
 
@@ -459,9 +459,28 @@
         X-CHALLENGER: "{{ X_CHALLENGER }}"
       return_content: true
     register: resp
-
-  - ansible.builtin.debug:
-      var: resp
+  - ansible.builtin.assert:
+      that:
+        - (resp.content|replace('><', '>\n<')).split('\n')|sort ==
+          (_exp_xml|replace('><', '>\n<')).split('\n')|sort
+#  - debug:
+#      msg: "{{ (_exp_xml|replace('><', '>\n<')).split('\n')|sort }}"
+    vars:
+      _exp_xml: |-
+        <todos>
+        <todo><doneStatus>false</doneStatus><description/><id>6</id><title>process payroll</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>5</id><title>pay invoices</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>1</id><title>scan paperwork</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>2</id><title>file paperwork</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>7</id><title>train staff</title></todo>
+        <todo><doneStatus>true</doneStatus><description/><id>11</id><title>create todo process payroll</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>8</id><title>schedule meeting</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>4</id><title>escalate late payments</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>10</id><title>install webcam</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>9</id><title>tidy meeting room</title></todo>
+        <todo><doneStatus>false</doneStatus><description/><id>3</id><title>process payments</title></todo>
+        <todo><doneStatus>true</doneStatus><description>This description has just enough characters to validate because it is exactly 200 characters in length. I had to use a tool to check this - so I should have used a CounterString to be absolutely sure.</description><id>15</id><title>updated title</title></todo>
+        </todos>
 
   - ansible.builtin.debug:
       var: X_CHALLENGER
