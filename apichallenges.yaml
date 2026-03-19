@@ -1,0 +1,467 @@
+---
+- hosts: localhost
+  connection: local
+  gather_facts: no
+
+  tasks:
+
+  - block:
+
+    - name: >-
+        Issue a POST request on the `/challenger` end point, with no body,
+        to create a new challenger session. Use the generated X-CHALLENGER
+        header in future requests to track challenge completion.
+      ansible.builtin.uri:
+        url: https://apichallenges.eviltester.com/challenger
+        method: POST
+        headers:
+          Accept: '*/*'
+          Content-Length: 0
+          User-Agent: ansible 2.10.17
+        status_code: 201
+      register: resp
+
+    - ansible.builtin.set_fact:
+        X_CHALLENGER: "{{ resp.x_challenger }}"
+
+#    - ansible.builtin.file:
+#        path: group_vars
+#        state: directory
+#        mode: 0755
+#        owner: "{{ lookup('ansible.builtin.env', 'host_uid') | default(omit, true) }}"
+#        group: "{{ lookup('ansible.builtin.env', 'host_gid') | default(omit, true) }}"
+
+#    - ansible.builtin.lineinfile:
+#        path: group_vars/all.yaml
+#        regexp: '^X_CHALLENGER:'
+#        line: "X_CHALLENGER: {{ X_CHALLENGER }}"
+#        create: true
+#        mode: 0644
+#        owner: "{{ lookup('ansible.builtin.env', 'host_uid') | default(omit, true) }}"
+#        group: "{{ lookup('ansible.builtin.env', 'host_gid') | default(omit, true) }}"
+
+    when: X_CHALLENGER is not defined
+
+  - name: Issue a GET request on the `/challenges` end point
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/challenges
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.debug:
+      msg: "{{ item|to_json }}"
+           #'{{ { "id": item.id ,
+           #      "name": item.name ,
+           #      "description": item.description,
+           #      "status": item.status }|to_json }}'
+    loop: "{{ (resp.content|from_json).challenges }}"
+    loop_control:
+      label: ''
+
+  - name: Issue a HEAD request on the `/todos` end point
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: HEAD
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+
+  - name: Issue a GET request on the `/todo` end point should 404 because nouns should be plural
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todo
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      status_code: 404
+    # ignore_errors: true
+    # register: resp
+    # failed_when: resp.status != 404
+
+  - name: Issue a GET request on the `/todos` end point
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.set_fact:
+      todos: "{{ (resp.content|from_json).todos|sort(attribute='id') }}"
+
+  - ansible.builtin.set_fact:
+      exp_todos: >-
+        {{ [
+            {'id': 5, 'title': 'pay invoices', 'doneStatus': false, 'description': ''},
+            {'id': 8, 'title': 'schedule meeting', 'doneStatus': false, 'description': ''},
+            {'id': 2, 'title': 'file paperwork', 'doneStatus': false, 'description': ''},
+            {'id': 9, 'title': 'tidy meeting room', 'doneStatus': false, 'description': ''},
+            {'id': 7, 'title': 'train staff', 'doneStatus': false, 'description': ''},
+            {'id': 10, 'title': 'install webcam', 'doneStatus': false, 'description': ''},
+            {'id': 1, 'title': 'scan paperwork', 'doneStatus': false, 'description': ''},
+            {'id': 3, 'title': 'process payments', 'doneStatus': false, 'description': ''},
+            {'id': 4, 'title': 'escalate late payments', 'doneStatus': false, 'description': ''},
+            {'id': 6, 'title': 'process payroll', 'doneStatus': false, 'description': ''}
+           ]|sort(attribute='id') }}
+
+  - ansible.builtin.assert:
+      that: "{{ exp_todos == todos }}"
+
+  - name: Issue a GET request on the `/todos/{id}` end point to return a specific todo
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ item.id }}"
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+    loop: "{{ todos }}"
+
+  - name: "Issue a GET request on the `/todos/{{ id }}` end point for a todo that does not exist"
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ id }}"
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      status_code: 404
+    vars:
+      id: "{{ ((resp.content|from_json).todos|map(attribute='id')|max)+1 }}"
+#    ignore_errors: true
+#    register: resp
+#    failed_when: resp.status != 404
+
+  - name: Issue a POST request to successfully create a todo
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: create todo process payroll
+        doneStatus: true
+        description: ''
+      status_code: 201
+
+  - name: >-
+      Issue a GET request on the `/todos` end point with a query filter to
+      get only todos which are 'done'. There must exist both 'done' and
+      'not done' todos, to pass this challenge.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos?doneStatus=true
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.debug:
+      msg: '{{ item|to_json }}'
+    loop: "{{ (resp.content|from_json).todos }}"
+    loop_control:
+      label: ''
+
+  - name: Issue a POST request to create a todo but fail validation on the `doneStatus` field
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        #Content-Type: application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: create new todo
+        doneStatus: bob
+        description: created via insomnia
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Failed Validation: doneStatus should be BOOLEAN but was STRING'
+
+  - name: >-
+      Issue a POST request to create a todo but fail length validation on the
+      `title` field because your title exceeds maximum allowable characters.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        #Content-Type: application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: this title has far too many characters to validate.
+        doneStatus: true
+        description: should trigger a 400 error
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Failed Validation: Maximum allowable length exceeded for title - maximum allowed is 50'
+
+  - name: >-
+      Issue a POST request to create a todo but fail length validation on the
+      `description` because your description exceeds maximum allowable characters.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        #Content-Type: application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: this title is fine
+        doneStatus: true
+        description: >-
+          Should trigger a 400 error because this description is too long and
+          exceeds the maximum length of 200 characters. We should do additional
+          testing to make sure that 200 is valid. And check large strings
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Failed Validation: Maximum allowable length exceeded for description - maximum allowed is 200'
+
+  - ansible.builtin.set_fact:
+      max_todo:
+        title: this title has just enough characters to validate.
+        doneStatus: true
+        description: >-
+          This description has just enough characters to validate because it is
+          exactly 200 characters in length. I had to use a tool to check this -
+          so I should have used a CounterString to be absolutely sure.
+
+  - name: Issue a POST request to create a todo with maximum length title and description fields.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        #Content-Type: application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body: "{{ max_todo|to_json }}" # this helps ensure that the payload is valid JSON before sending
+      status_code: 201
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == max_todo|combine({'id': resp.json.id})
+
+  - ansible.builtin.set_fact:
+      new_id: "{{ resp.json.id }}"
+
+  - name: >-
+      Issue a POST request to create a todo but fail payload length validation
+      on the `description` because your whole payload exceeds maximum allowable
+      5000 characters.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: this title is valid.
+        doneStatus: true
+        description: "{{ '5' ~ '0'*4999 }}"
+      status_code: 413
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Error: Request body too large, max allowed is 5000 bytes'
+
+  - name: >-
+      Issue a POST request to create a todo but fail validation because your
+      payload contains an unrecognised field.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: POST
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: a title
+        priority: extra
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Could not find field: priority'
+
+  - name: Issue a PUT request to unsuccessfully create a todo
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos/300
+      method: PUT
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: create todo process payroll
+        doneStatus: true
+        description: ''
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'Cannot create todo with PUT due to Auto fields id'
+
+  - ansible.builtin.set_fact:
+      new_title: updated title
+
+  - name: "Issue a POST request to successfully update a todo with `id` {{ new_id }}"
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ new_id }}"
+      method: POST
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: "{{ new_title }}"
+    register: resp
+
+  - ansible.builtin.assert:
+#    vars:
+#      upd__max_todo: "{{ max_todo|combine({'id': new_id|int, 'title': new_title}) }}"
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == max_todo|combine({'id': new_id|int, 'title': new_title})
+
+  - name: >-
+      Issue a POST request for a todo which does not exist. Expect to receive a 404 response.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos/200
+      method: POST
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: updated title
+      status_code: 404
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json.errorMessages is defined and
+        resp.json.errorMessages is not string and
+        resp.json.errorMessages is not mapping and
+        resp.json.errorMessages is iterable and
+        resp.json.errorMessages|length == 1 and
+        resp.json.errorMessages[0] == 'No such todo entity instance with id == 200 found'
+
+  - name: >-
+      Issue an OPTIONS request on the `/todos` end point. You might want to
+      manually check the 'Allow' header in the response is as expected.
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: OPTIONS
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.allow is defined and
+        resp.allow is string and
+        resp.allow.split(',')|map('trim')|sort == ['OPTIONS', 'GET', 'HEAD', 'POST']|sort
+
+  - name: >-
+      Issue a GET request on the `/todos` end point with an `Accept` header of
+      `application/xml, application/json` to receive results in the preferred
+      XML format
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: GET
+      headers:
+        Accept: application/xml,application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.debug:
+      var: resp
+
+  - ansible.builtin.debug:
+      var: X_CHALLENGER
