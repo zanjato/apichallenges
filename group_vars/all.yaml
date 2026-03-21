@@ -39,3 +39,8 @@ exp_xml: |-
   <todo><doneStatus>false</doneStatus><description/><id>10</id><title>install webcam</title></todo>
   <todo><doneStatus>false</doneStatus><description/><id>3</id><title>process payments</title></todo>
   <todo><doneStatus>false</doneStatus><description/><id>8</id><title>schedule meeting</title></todo></todos>
+
+exp_todo_19: '{{ {"id": 3,
+                  "title": "updated title",
+                  "doneStatus": false,
+                  "description": "updated description"} }}'
