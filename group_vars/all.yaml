@@ -1,15 +1,15 @@
 ---
-exp_todos: >-
-  {{ [{'id': 5, 'title': 'pay invoices', 'doneStatus': false, 'description': ''},
-      {'id': 8, 'title': 'schedule meeting', 'doneStatus': false, 'description': ''},
-      {'id': 2, 'title': 'file paperwork', 'doneStatus': false, 'description': ''},
-      {'id': 9, 'title': 'tidy meeting room', 'doneStatus': false, 'description': ''},
-      {'id': 7, 'title': 'train staff', 'doneStatus': false, 'description': ''},
-      {'id': 10, 'title': 'install webcam', 'doneStatus': false, 'description': ''},
-      {'id': 1, 'title': 'scan paperwork', 'doneStatus': false, 'description': ''},
-      {'id': 3, 'title': 'process payments', 'doneStatus': false, 'description': ''},
-      {'id': 4, 'title': 'escalate late payments', 'doneStatus': false, 'description': ''},
-      {'id': 6, 'title': 'process payroll', 'doneStatus': false, 'description': ''}] }}
+exp_todos: |-
+  {{ [{"id": 5, "title": "pay invoices", "doneStatus": false, "description": ""},
+      {"id": 8, "title": "schedule meeting", "doneStatus": false, "description": ""},
+      {"id": 2, "title": "file paperwork", "doneStatus": false, "description": ""},
+      {"id": 9, "title": "tidy meeting room", "doneStatus": false, "description": ""},
+      {"id": 7, "title": "train staff", "doneStatus": false, "description": ""},
+      {"id": 10, "title": "install webcam", "doneStatus": false, "description": ""},
+      {"id": 1, "title": "scan paperwork", "doneStatus": false, "description": ""},
+      {"id": 3, "title": "process payments", "doneStatus": false, "description": ""},
+      {"id": 4, "title": "escalate late payments", "doneStatus": false, "description": ""},
+      {"id": 6, "title": "process payroll", "doneStatus": false, "description": ""}] }}
 
 desc200: >-
   This description has just enough characters to validate because it is exactly
@@ -54,4 +54,20 @@ exp_todo_21: '{{ {"errorMessages": ["title : field is mandatory"]} }}'
 
 body_22: '{{ { "id": exp_todos[4].id, "title": "updated title" } }}'
 
-exp_todo_22: '{{ {"errorMessages": ["Can not amend id from %s to %s"|format(exp_todos[3].id, exp_todos[4].id)]} }}'
+exp_todo_22: '{{ {"errorMessages": ["Can not amend id from %s to %s"|
+                                    format(exp_todos[3].id,
+                                    exp_todos[4].id)]} }}'
+
+exp_todos_26: |-
+  [{"description": "", "doneStatus": false, "id": 2, "title": "file paperwork"},
+   {"description": "", "doneStatus": true, "id": 11, "title": "create todo process payroll"},
+   {"description": "", "doneStatus": false, "id": 9, "title": "tidy meeting room"},
+   {"description": "{{ desc200 }}", "doneStatus": true, "id": 15, "title": "updated title" },
+   {"description": "", "doneStatus": false, "id": 4, "title": "escalate late payments"},
+   {"description": "", "doneStatus": false, "id": 7, "title": "train staff"},
+   {"description": "", "doneStatus": false, "id": 8, "title": "schedule meeting"},
+   {"description": "", "doneStatus": false, "id": 10, "title": "install webcam"},
+   {"description": "", "doneStatus": false, "id": 5, "title": "pay invoices"},
+   {"description": "", "doneStatus": false, "id": 6, "title": "process payroll"},
+   {"description": "", "doneStatus": false, "id": 3, "title": "partial update for title"},
+   {"description": "", "doneStatus": false, "id": 1, "title": "scan paperwork"}]
