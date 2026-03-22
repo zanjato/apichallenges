@@ -431,6 +431,26 @@
       that: "{{ (resp.content|replace('><', '>\n<')).split('\n')|sort ==
                 (exp_xml|replace('><', '>\n<')).split('\n')|sort }}"
 
+  - block:
+    - name: Сравнение действительного и ожидаемого XML с помощью xmllint
+      ansible.builtin.shell: |
+        set -Eeu -o pipefail
+        diff -u <(cat <<'EOF' |xmllint --c14n11 --format|sort
+        {{ resp.content }}
+        EOF
+        ) <(cat <<'EOF' |xmllint --c14n11 --format|sort
+        {{ exp_xml }}
+        EOF
+        )
+      args:
+        executable: /bin/bash
+      register: diff_res
+      ignore_errors: yes
+      changed_when: false
+
+    - ansible.builtin.assert:
+        that: "{{ diff_res|int == 0 }}"
+
   - name: >-
       Issue a PUT request to update an existing todo with a
       complete payload i.e. title, description and donestatus.
