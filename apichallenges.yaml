@@ -547,5 +547,45 @@
       that: "{{ resp.json.todos|sort(attribute='id') ==
                 exp_todos_26|sort(attribute='id') }}"
 
+  - name: Issue a GET request on the `/todos` end point before DELETE
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.set_fact:
+      before_todos_23: "{{ (resp.content|from_json).todos }}"
+
+  - name: Issue a DELETE request to successfully delete a todo
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ before_todos_23[-1].id }}"
+      method: DELETE
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+
+  - name: Issue a GET request on the `/todos` end point after DELETE
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: GET
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      return_content: true
+    register: resp
+
+  - ansible.builtin.set_fact:
+      after_todos_23: "{{ (resp.content|from_json).todos }}"
+
+  - ansible.builtin.assert:
+      that: "{{ after_todos_23|sort(attribute='id') == before_todos_23[:-1]|sort(attribute='id') }}"
+
   - ansible.builtin.debug:
       var: X_CHALLENGER
