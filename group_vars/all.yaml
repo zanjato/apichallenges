@@ -44,3 +44,10 @@ exp_todo_19: '{{ {"id": 3,
                   "title": "updated title",
                   "doneStatus": false,
                   "description": "updated description"} }}'
+
+exp_todo_20: '{{ {"id": 3,
+                  "title": "partial update for title",
+                  "doneStatus": false,
+                  "description": ""} }}'
+
+exp_todo_21: '{{ {"errorMessages": ["title : field is mandatory"]} }}'

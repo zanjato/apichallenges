@@ -451,5 +451,48 @@
         resp.json is mapping and
         resp.json == exp_todo_19
 
+  - name: >-
+      Issue a PUT request to update an existing todo
+      with just mandatory items in payload i.e. title.
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ exp_todo_20.id }}"
+      method: PUT
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        title: "{{ exp_todo_20.title }}"
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == exp_todo_20
+
+  - name: >-
+      Issue a PUT request to fail to update an existing
+      todo because title is missing in payload.
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ exp_todos[3].id }}"
+      method: PUT
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body:
+        description: partial update for description
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == exp_todo_21
+
   - ansible.builtin.debug:
       var: X_CHALLENGER
