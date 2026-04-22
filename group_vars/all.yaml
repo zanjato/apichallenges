@@ -51,3 +51,7 @@ exp_todo_20: '{{ {"id": 3,
                   "description": ""} }}'
 
 exp_todo_21: '{{ {"errorMessages": ["title : field is mandatory"]} }}'
+
+body_22: '{{ { "id": exp_todos[4].id, "title": "updated title" } }}'
+
+exp_todo_22: '{{ {"errorMessages": ["Can not amend id from %s to %s"|format(exp_todos[3].id, exp_todos[4].id)]} }}'

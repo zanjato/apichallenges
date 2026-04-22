@@ -494,5 +494,26 @@
         resp.json is mapping and
         resp.json == exp_todo_21
 
+  - name: >-
+      Issue a PUT request to fail to update an
+      existing todo because id different in payload.
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ exp_todos[3].id }}"
+      method: PUT
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body: "{{ body_22 }}"
+      status_code: 400
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == exp_todo_22
+
   - ansible.builtin.debug:
       var: X_CHALLENGER
