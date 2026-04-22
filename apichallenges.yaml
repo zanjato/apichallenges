@@ -92,11 +92,11 @@
       return_content: true
     register: resp
 
-  - set_fact:
-      todos: "{{ (resp.content|from_json).todos|sort(attribute='id') }}"
+  - ansible.builtin.set_fact:
+      todos: "{{ (resp.content|from_json).todos }}"
 
   - ansible.builtin.assert:
-      that: "{{ todos == exp_todos|sort(attribute='id') }}"
+      that: "{{ todos|sort(attribute='id') == exp_todos|sort(attribute='id') }}"
 
   - name: Issue a GET request on the `/todos/{id}` end point to return a specific todo
     ansible.builtin.uri:
@@ -164,7 +164,6 @@
       method: POST
       headers:
         Accept: '*/*'
-        #Content-Type: application/json
         User-Agent: ansible 2.10.17
         X-CHALLENGER: "{{ X_CHALLENGER }}"
       body_format: json
@@ -193,7 +192,6 @@
       method: POST
       headers:
         Accept: '*/*'
-        #Content-Type: application/json
         User-Agent: ansible 2.10.17
         X-CHALLENGER: "{{ X_CHALLENGER }}"
       body_format: json
@@ -222,7 +220,6 @@
       method: POST
       headers:
         Accept: '*/*'
-        #Content-Type: application/json
         User-Agent: ansible 2.10.17
         X-CHALLENGER: "{{ X_CHALLENGER }}"
       body_format: json
@@ -252,7 +249,6 @@
       method: POST
       headers:
         Accept: '*/*'
-        #Content-Type: application/json
         User-Agent: ansible 2.10.17
         X-CHALLENGER: "{{ X_CHALLENGER }}"
       body_format: json
@@ -534,6 +530,22 @@
         resp.json is defined and
         resp.json is mapping and
         resp.json == exp_todo_22
+
+  - name: >-
+      Issue a GET request on the `/todos` end point with an `Accept`
+      header of `application/json` to receive results in JSON format
+    ansible.builtin.uri:
+      url: https://apichallenges.eviltester.com/todos
+      method: GET
+      headers:
+        Accept: application/json
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+    register: resp
+
+  - ansible.builtin.assert:
+      that: "{{ resp.json.todos|sort(attribute='id') ==
+                exp_todos_26|sort(attribute='id') }}"
 
   - ansible.builtin.debug:
       var: X_CHALLENGER
