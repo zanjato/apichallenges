@@ -12,7 +12,7 @@ docker run -it --rm \
   -w "/${workdir}" \
   -e host_uid="${UID}" \
   -e host_gid="$(id -g)" \
-  --entrypoint=ansible-playbook \
+  --name ansible \
   alse-ansible:1.7.5_2.10.17 \
     -i localhost, "$@"
 
@@ -20,7 +20,7 @@ docker run -it --rm \
 podman run -it --rm \
   -v "${PWD}":"/${workdir}" \
   -w "/${workdir}" \
-  --entrypoint=ansible-playbook \
+  --name ansible \
   alse-ansible:1.7.5_2.10.17 \
     -i localhost, "$@"
 CMT
