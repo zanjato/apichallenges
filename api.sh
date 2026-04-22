@@ -14,7 +14,7 @@ docker run -it --rm \
   -e host_gid="$(id -g)" \
   --name ansible \
   alse-ansible:1.7.5_2.10.17 \
-    -i localhost, "$@"
+    "$@"
 
 : <<CMT
 podman run -it --rm \
@@ -22,5 +22,5 @@ podman run -it --rm \
   -w "/${workdir}" \
   --name ansible \
   alse-ansible:1.7.5_2.10.17 \
-    -i localhost, "$@"
+    "$@"
 CMT

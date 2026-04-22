@@ -431,5 +431,25 @@
       that: "{{ (resp.content|replace('><', '>\n<')).split('\n')|sort ==
                 (exp_xml|replace('><', '>\n<')).split('\n')|sort }}"
 
+  - name: >-
+      Issue a PUT request to update an existing todo with a
+      complete payload i.e. title, description and donestatus.
+    ansible.builtin.uri:
+      url: "https://apichallenges.eviltester.com/todos/{{ exp_todo_19.id }}"
+      method: PUT
+      headers:
+        Accept: '*/*'
+        User-Agent: ansible 2.10.17
+        X-CHALLENGER: "{{ X_CHALLENGER }}"
+      body_format: json
+      body: "{{ exp_todo_19 }}"
+    register: resp
+
+  - ansible.builtin.assert:
+      that: >-
+        resp.json is defined and
+        resp.json is mapping and
+        resp.json == exp_todo_19
+
   - ansible.builtin.debug:
       var: X_CHALLENGER
